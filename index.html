@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SORTER Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body {
+      text-align: center;
+      font-family: Arial, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+      background: #F8F6F3;
+      font-size: 22px;
+      padding: 20px;
+    }
+
+    canvas {
+      background: white;
+      border: 3px solid #333;
+      margin-top: 20px;
+    }
+
+    #result {
+      margin: 15px;
+      font-size: 24px;
+      height: 30px; 
+    }
+
+    #controls {
+      margin-top: 10px;
+    }
+
+    button {
+      font-size: 20px;
+      padding: 12px 25px;
+      margin: 10px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+
+<h2 id="info">Welcome 😊</h2>
+<h3 id="rule"></h3>
+
+<canvas id="gameCanvas" width="220" height="220"></canvas>
+
+<div id="controls">
+  <button onclick="handleInput('L')">⬅ LEFT</button>
+  <button onclick="handleInput('R')">RIGHT ➡</button>
+  <button onclick="restartGame()">🔄 RESTART</button>
+  <div id="result"></div>
+</div>
+
+<script>
+
+// ✅ SAFE AUDIO ENGINE (Cross-browser)
+const SoundEngine = {
+  ctx: null,
+
+  init() {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      if (!this.ctx) {
+        this.ctx = new AudioCtx();
+      }
+      if (this.ctx.state === "suspended") {
+        this.ctx.resume();
+      }
+    } catch (e) {
+      console.log("Audio not supported");
+    }
+  },
+
+  tone(freq, time) {
+    if (!this.ctx) return;
+
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+
+    o.type = "sine";
+    o.frequency.value = freq;
+
+    g.gain.setValueAtTime(0.2, this.ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + time);
+
+    o.connect(g);
+    g.connect(this.ctx.destination);
+
+    o.start();
+    o.stop(this.ctx.currentTime + time);
+  },
+
+  start() {
+    this.init();
+    this.tone(400, 0.1);
+    setTimeout(() => this.tone(600, 0.1), 120);
+  },
+
+  correct() {
+    this.init();
+    this.tone(600, 0.1);
+  },
+
+  wrong() {
+    this.init();
+    this.tone(250, 0.15);
+  },
+
+  end() {
+    this.init();
+    this.tone(500, 0.15);
+    setTimeout(() => this.tone(350, 0.15), 150);
+  }
+};
+
+// GAME DATA
+const shapes = ["Circle", "Square", "Triangle"];
+const colors = ["red", "blue", "green"];
+
+let score = 0, level = 1, wrong = 0, gameOver = false;
+let ruleType = "shape", ruleValue = shapes[0], ruleSide = "LEFT";
+let currentObj;
+
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+// DRAW SHAPE
+function drawShape(o) {
+  ctx.clearRect(0, 0, 220, 220);
+  ctx.fillStyle = o.color;
+
+  if (o.shape === "Circle") {
+    ctx.beginPath();
+    ctx.arc(110, 110, 60, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  if (o.shape === "Square") {
+    ctx.fillRect(60, 60, 100, 100);
+  }
+
+  if (o.shape === "Triangle") {
+    ctx.beginPath();
+    ctx.moveTo(110, 50);
+    ctx.lineTo(50, 170);
+    ctx.lineTo(170, 170);
+    ctx.fill();
+  }
+}
+
+// CHANGE RULE
+function changeRule() {
+  ruleType = Math.random() < 0.5 ? "shape" : "color";
+
+  ruleValue = ruleType === "shape"
+    ? shapes[Math.floor(Math.random() * 3)]
+    : colors[Math.floor(Math.random() * 3)];
+
+  ruleSide = Math.random() < 0.5 ? "LEFT" : "RIGHT";
+}
+
+// NEXT ROUND
+function nextRound() {
+  changeRule();
+
+  currentObj = {
+    shape: shapes[Math.floor(Math.random() * 3)],
+    color: colors[Math.floor(Math.random() * 3)]
+  };
+
+  drawShape(currentObj);
+
+  document.getElementById("rule").innerText =
+    "Match " + ruleType + " = " + ruleValue + " → " + ruleSide;
+
+  document.getElementById("info").innerText =
+    "Level: " + level + " | Score: " + score;
+}
+
+// HANDLE INPUT
+function handleInput(choice) {
+  if (gameOver) return;
+
+  SoundEngine.init(); // ensure audio unlock on interaction
+
+  let match = (ruleType === "shape")
+    ? currentObj.shape === ruleValue
+    : currentObj.color === ruleValue;
+
+  let correct = (ruleSide === "LEFT")
+    ? (match && choice === "L") || (!match && choice === "R")
+    : (match && choice === "R") || (!match && choice === "L");
+
+  if (correct) {
+    score++;
+    document.getElementById("result").innerText = "Well done 😊";
+    SoundEngine.correct();
+  } else {
+    wrong++;
+    document.getElementById("result").innerText = "Try again 🙂";
+    SoundEngine.wrong();
+  }
+
+  if (score % 5 === 0 && score !== 0) {
+    level++;
+  }
+
+  if (wrong >= 5) {
+    document.getElementById("result").innerText =
+      "Good try 😊 Press Restart";
+    gameOver = true;
+    SoundEngine.end();
+    return;
+  }
+
+  setTimeout(nextRound, 600);
+}
+
+// RESTART
+function restartGame() {
+  score = 0;
+  level = 1;
+  wrong = 0;
+  gameOver = false;
+
+  SoundEngine.start();
+
+  document.getElementById("result").innerText = "";
+  nextRound();
+}
+
+// KEYBOARD SUPPORT
+document.addEventListener("keydown", (e) => {
+  if (e.key === "ArrowLeft") handleInput("L");
+  if (e.key === "ArrowRight") handleInput("R");
+});
+
+// START GAME
+nextRound();
+
+// SAFE SERVICE WORKER
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("sw.js")
+    .then(() => console.log("SW registered"))
+    .catch(err => console.log("SW error:", err));
+}
+
+</script>
+
+</body>
+</html>
