@@ -1,16 +1,21 @@
 {
-  "name": "Cognitive Game",
-  "short_name": "SORTER",
+  "name": "Sorter Game",
+  "short_name": "Sorter",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#F8F6F3",
-  "theme_color": "#F8F6F3",
+  "background_color": "#ffffff",
+  "theme_color": "#4dabf7",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='192' height='192'><rect width='192' height='192' fill='%23F8F6F3'/><text x='50%' y='50%' font-size='80' text-anchor='middle' fill='black' dy='.3em'>S</text></svg>",
+      "src": "icon-192.png",
       "sizes": "192x192",
-      "type": "image/svg+xml"
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
     }
   ]
 }
