@@ -8,138 +8,60 @@
     body {
       margin: 0;
       font-family: Arial;
-      text-align: center;
       background: white;
-    }
-
-    #homeScreen {
-      height: 100vh;
       display: flex;
-      flex-direction: column;
-      align-items: center;
       justify-content: center;
-      position: relative;
-      overflow: hidden;
-      background: white;
+      align-items: center;
+      height: 100vh;
     }
 
-    .bg-shapes {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      z-index: 0;
-    }
-
-    .shape {
-      position: absolute;
-      opacity: 0.15;
-    }
-
-    .circle {
-      width: 100px;
-      height: 100px;
-      background: red;
-      border-radius: 50%;
-      top: 20px;
-      left: 20px;
-    }
-
-    .square {
-      width: 90px;
-      height: 90px;
-      background: blue;
-      top: 60%;
-      left: 10%;
-    }
-
-    .triangle {
-      width: 0;
-      height: 0;
-      border-left: 50px solid transparent;
-      border-right: 50px solid transparent;
-      border-bottom: 90px solid green;
-      top: 30%;
-      right: 20px;
-    }
-
-    .diamond {
-      width: 70px;
-      height: 70px;
-      background: orange;
-      transform: rotate(45deg);
-      bottom: 20px;
-      right: 30px;
-    }
-
-    #homeScreen h1,
-    #homeScreen p,
-    #homeScreen button {
-      position: relative;
-      z-index: 1;
-    }
-
-    #homeScreen button {
-      margin-top: 20px;
-      padding: 10px 25px;
-      font-size: 18px;
-      border-radius: 10px;
-      border: none;
-      background: orange;
-      color: white;
-      cursor: pointer;
-    }
-
-    #game {
-      display: none;
-      padding: 20px;
+    #gameContainer {
+      width: 260px;
+      text-align: center;
     }
 
     canvas {
       background: white;
       border: 2px solid black;
-      margin-top: 20px;
+      margin-top: 10px;
+    }
+
+    #info {
+      font-size: 14px;
+    }
+
+    #rule {
+      font-size: 16px;
+      margin-top: 10px;
+    }
+
+    #result {
+      margin-top: 10px;
+      font-size: 18px;
+      height: 24px;
     }
 
     button {
       font-size: 14px;
-      padding: 8px 15px;
-      margin: 6px;
+      padding: 6px 12px;
+      margin: 5px;
       border-radius: 6px;
       border: none;
-      color: white;
       cursor: pointer;
+      color: white;
     }
 
-    .leftBtn { background: red; }
-    .rightBtn { background: blue; }
-    .restartBtn { background: gray; }
-
-    #result {
-      margin-top: 10px;
-      font-size: 20px;
-      font-weight: bold;
-    }
+    .leftBtn { background: #e03131; }   
+    .rightBtn { background: #1c7ed6; }  
+    .restartBtn { background: grey; }
   </style>
 </head>
 
 <body>
 
-<div id="homeScreen">
-  <div class="bg-shapes">
-    <div class="shape circle"></div>
-    <div class="shape square"></div>
-    <div class="shape triangle"></div>
-    <div class="shape diamond"></div>
-  </div>
+<div id="gameContainer">
 
-  <h1>Sorter Game</h1>
-  <p>Match colors or shapes  press correct side</p>
-
-  <button onclick="startGame()">PLAY</button>
-</div>
-
-<div id="game">
-  <h3 id="info"></h3>
+  <div id="info">Level: 1 | Score: 0</div>
   <div id="rule"></div>
 
   <canvas id="gameCanvas" width="220" height="220"></canvas>
@@ -151,30 +73,35 @@
   </div>
 
   <div id="result"></div>
+
 </div>
 
 <script>
 
-const SoundEngine = {
+const Sound = {
   ctx: null,
 
   init() {
-    if (this.ctx) return;
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return;
-    this.ctx = new AudioCtx();
+
+    if (!this.ctx) this.ctx = new AudioCtx();
+
+    if (this.ctx.state === "suspended") {
+      this.ctx.resume();
+    }
   },
 
-  play(freq, time){
-    if(!this.ctx) return;
+  play(freq, time, type="sine", vol=0.2) {
+    if (!this.ctx) return;
 
     const o = this.ctx.createOscillator();
     const g = this.ctx.createGain();
 
-    o.type = "sine";
+    o.type = type;
     o.frequency.value = freq;
 
-    g.gain.setValueAtTime(0.2, this.ctx.currentTime);
+    g.gain.setValueAtTime(vol, this.ctx.currentTime);
     g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + time);
 
     o.connect(g);
@@ -183,56 +110,54 @@ const SoundEngine = {
     o.start();
     o.stop(this.ctx.currentTime + time);
   },
-
-  win(){
+  win() {
     this.init();
-    this.play(600,0.1);
-    setTimeout(()=>this.play(800,0.1),120);
+    this.play(500, 0.1);
+    setTimeout(() => this.play(700, 0.1), 100);
+    setTimeout(() => this.play(900, 0.15), 200);
   },
 
-  lose(){
+  wrong() {
     this.init();
-    this.play(300,0.2);
+    this.play(300, 0.2, "sine", 0.15);
   },
 
-  level(){
+  start() {
     this.init();
-    this.play(500,0.1);
+    this.play(400, 0.1);
   }
-}
-const shapes=["circle","square","triangle"];
-const colors=["red","blue","green"];
+};
 
-let score=0, level=1, wrong=0, gameOver=false;
+const shapes = ["circle", "square", "triangle"];
+
+const colors = [
+  { name: "red", value: "#e03131" },
+  { name: "blue", value: "#1c7ed6" },
+  { name: "green", value: "#2f9e44" }
+];
+
+let score = 0, level = 1, wrong = 0, gameOver = false;
 let ruleType, ruleValue, ruleSide;
 let currentObj;
-let speed=800;
 
-const canvas=document.getElementById("gameCanvas");
-const ctx=canvas.getContext("2d");
-
-function startGame(){
-  SoundEngine.init(); 
-  document.getElementById("homeScreen").style.display="none";
-  document.getElementById("game").style.display="block";
-  nextRound();
-}
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
 
 function drawShape(o){
   ctx.clearRect(0,0,220,220);
-  ctx.fillStyle=o.color;
+  ctx.fillStyle = o.color.value;
 
-  if(o.shape==="circle"){
+  if(o.shape === "circle"){
     ctx.beginPath();
     ctx.arc(110,110,60,0,Math.PI*2);
     ctx.fill();
   }
 
-  if(o.shape==="square"){
+  if(o.shape === "square"){
     ctx.fillRect(60,60,100,100);
   }
 
-  if(o.shape==="triangle"){
+  if(o.shape === "triangle"){
     ctx.beginPath();
     ctx.moveTo(110,50);
     ctx.lineTo(50,170);
@@ -242,19 +167,13 @@ function drawShape(o){
 }
 
 function changeRule(){
-  if(level==1){
-    ruleType="color";
+  ruleType = level === 1 ? "color" : (Math.random()<0.5?"shape":"color");
+
+  if(ruleType === "color"){
+    ruleValue = colors[Math.floor(Math.random()*colors.length)];
+  } else {
+    ruleValue = shapes[Math.floor(Math.random()*shapes.length)];
   }
-  else if(level==2){
-    ruleType=Math.random()<0.5?
-    "color":"shape";
-  }
-  else{
-  ruleType = Math.random()<0.5 ? "color" : "shape";
-  }
-  ruleValue = ruleType==="shape"
-    ? shapes[Math.floor(Math.random()*3)]
-    : colors[Math.floor(Math.random()*3)];
 
   ruleSide = Math.random()<0.5 ? "LEFT" : "RIGHT";
 }
@@ -262,75 +181,85 @@ function changeRule(){
 function nextRound(){
   changeRule();
 
-  currentObj={
-    shape:shapes[Math.floor(Math.random()*3)],
-    color:colors[Math.floor(Math.random()*3)]
+  currentObj = {
+    shape: shapes[Math.floor(Math.random()*3)],
+    color: colors[Math.floor(Math.random()*3)]
   };
 
   drawShape(currentObj);
-   let sentence;
 
-  if (ruleType === "shape") {
-    sentence = "If the shape is a " + ruleValue + ", press " + ruleSide + ".";
+  let text = "";
+
+  if(ruleType === "color"){
+    text = "If color is " + ruleValue.name + ", press " + ruleSide;
   } else {
-    sentence = "If the color is " + ruleValue + ", press " + ruleSide + ".";
+    text = "If shape is " + ruleValue + ", press " + ruleSide;
   }
 
-  document.getElementById("rule").innerText = sentence;
+  document.getElementById("rule").innerText = text;
 
   document.getElementById("info").innerText =
     "Level: " + level + " | Score: " + score;
 }
 
 function handleInput(choice){
-
   if(gameOver) return;
 
-  SoundEngine.init();
+  Sound.init(); 
 
-  let match = (ruleType==="shape")
-    ? currentObj.shape===ruleValue
-    : currentObj.color===ruleValue;
+  let match = (ruleType === "color")
+    ? currentObj.color.name === ruleValue.name
+    : currentObj.shape === ruleValue;
 
-  let correct = (ruleSide==="LEFT")
-    ? (match && choice==="L") || (!match && choice==="R")
-    : (match && choice==="R") || (!match && choice==="L");
+  let correct;
+
+  if(ruleSide === "LEFT"){
+    correct = match ? (choice === "L") : (choice === "R");
+  } else {
+    correct = match ? (choice === "R") : (choice === "L");
+  }
 
   if(correct){
     score++;
-    document.getElementById("result").innerText="Correct 😊";
-    SoundEngine.win();
+    document.getElementById("result").innerText = "Correct 😊";
+    Sound.win();
   } else {
     wrong++;
-    document.getElementById("result").innerText="Try again 🙂";
-    SoundEngine.lose();
+    document.getElementById("result").innerText = "Try again 🙂";
+    Sound.wrong();
   }
 
-  if(score%5===0 && score!==0){
+  if(score % 5 === 0 && score !== 0){
     level++;
-    SoundEngine.level();
-    if(speed>300) speed-=120;
   }
 
-  if(wrong>=5){
-    gameOver=true;
-    document.getElementById("result").innerText="Game Over  Press Restart";
-    SoundEngine.lose();
+  if(wrong >= 5){
+    document.getElementById("result").innerText = "Game Over";
+    Sound.wrong();
+    gameOver = true;
     return;
   }
 
-  setTimeout(nextRound, speed);
+  setTimeout(()=>{
+    document.getElementById("result").innerText = "";
+    nextRound();
+  },700);
 }
-function restartGame(){
-  score=0;
-  level=1;
-  wrong=0;
-  gameOver=false;
-  speed=800;
 
-  document.getElementById("result").innerText="";
+function restartGame(){
+  score = 0;
+  level = 1;
+  wrong = 0;
+  gameOver = false;
+  document.getElementById("result").innerText = "";
   nextRound();
 }
+
+document.body.addEventListener("click", () => {
+  Sound.start();
+}, { once: true });
+
+nextRound();
 
 </script>
 
