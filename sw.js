@@ -6,6 +6,7 @@ const FILES_TO_CACHE = [
   "manifest.json"
 ];
 
+// INSTALL
 self.addEventListener("install", event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
@@ -15,6 +16,7 @@ self.addEventListener("install", event => {
   self.skipWaiting();
 });
 
+// ACTIVATE
 self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys().then(keys => {
@@ -30,6 +32,7 @@ self.addEventListener("activate", event => {
   self.clients.claim();
 });
 
+// FETCH (offline support)
 self.addEventListener("fetch", event => {
   event.respondWith(
     caches.match(event.request).then(response => {
