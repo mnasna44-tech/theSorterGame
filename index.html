@@ -1,266 +1,275 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Sorter Game</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sorter Game</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial;
-      background: white;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
+<style>
+body{
+  margin:0;
+  font-family:Arial;
+  text-align:center;
+  background:#f5f7fa;
+  overflow:hidden;
+}
 
-    #gameContainer {
-      width: 260px;
-      text-align: center;
-    }
+.shape{
+  position:fixed;
+  opacity:0.28;
+  z-index:-1;
+}
 
-    canvas {
-      background: white;
-      border: 2px solid black;
-      margin-top: 10px;
-    }
+.c1{width:70px;height:70px;border-radius:50%;background:#e8bcbc;top:40px;left:30px;}
+.s1{width:65px;height:65px;background:#bcd6e8;top:180px;left:25px;} /* middle-left */
+.t1{
+  width:0;height:0;
+  border-left:30px solid transparent;
+  border-right:30px solid transparent;
+  border-bottom:55px solid #bfe3cd;
+  bottom:120px;left:40px;
+}
+.star1{font-size:45px;color:#e6d8a8;bottom:40px;left:60px;}
 
-    #info {
-      font-size: 14px;
-    }
+.c2{width:70px;height:70px;border-radius:50%;background:#d9bce8;top:60px;right:30px;}
+.s2{width:65px;height:65px;background:#cddff5;top:220px;right:25px;} /* middle-right */
+.t2{
+  width:0;height:0;
+  border-left:28px solid transparent;
+  border-right:28px solid transparent;
+  border-bottom:50px solid #cde3bf;
+  bottom:140px;right:35px;
+}
+.star2{font-size:50px;color:#e8ddb0;bottom:60px;right:70px;}
 
-    #rule {
-      font-size: 16px;
-      margin-top: 10px;
-    }
+.midL{
+  width:60px;height:60px;
+  background:#e2c9f2;
+  left:120px;
+  top:250px;
+}
+.midR{
+  width:0;height:0;
+  border-left:25px solid transparent;
+  border-right:25px solid transparent;
+  border-bottom:45px solid #c9f2dc;
+  right:120px;
+  top:300px;
+}
 
-    #result {
-      margin-top: 10px;
-      font-size: 18px;
-      height: 24px;
-    }
+#game{
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+}
 
-    button {
-      font-size: 14px;
-      padding: 6px 12px;
-      margin: 5px;
-      border-radius: 6px;
-      border: none;
-      cursor: pointer;
-      color: white;
-    }
+canvas{background:transparent;}
 
-    .leftBtn { background: #e03131; }   
-    .rightBtn { background: #1c7ed6; }  
-    .restartBtn { background: grey; }
-  </style>
+#top{
+  font-size:18px;
+  margin-bottom:5px;
+}
+#rule{
+  font-size:15px;
+  margin-bottom:12px;
+}
+
+.btns{
+  text-align:center;
+  margin-top:25px auto;
+}
+.btns button{
+  display:inline-block;
+  width:80px;
+  height:40px;
+  margin:0 8px;
+  border:none;
+  border-radius:6px;
+  color:white;
+  font-size:13px;
+}
+
+.left{background:#c96f6f;}
+.right{background:#6f9cc9;}
+.restart{background:grey;}
+
+#result{
+  margin-top:15px;
+  font-size:18px;
+}
+
+#finalScore{
+  margin-top:8px;
+  font-size:18px;
+  font-weight:bold;
+}
+</style>
 </head>
 
 <body>
 
-<div id="gameContainer">
+<!-- BACKGROUND -->
+<div class="shape c1"></div>
+<div class="shape s1"></div>
+<div class="shape t1"></div>
+<div class="shape star1">★</div>
 
-  <div id="info">Level: 1 | Score: 0</div>
-  <div id="rule"></div>
+<div class="shape c2"></div>
+<div class="shape s2"></div>
+<div class="shape t2"></div>
+<div class="shape star2">★</div>
 
-  <canvas id="gameCanvas" width="220" height="220"></canvas>
+<!-- NEW CENTER SIDE SHAPES -->
+<div class="shape midL"></div>
+<div class="shape midR"></div>
 
-  <div>
-    <button class="leftBtn" onclick="handleInput('L')">LEFT</button>
-    <button class="rightBtn" onclick="handleInput('R')">RIGHT</button>
-    <button class="restartBtn" onclick="restartGame()">RESTART</button>
-  </div>
+<!-- GAME -->
+<div id="game">
+<div id="top"></div>
+<div id="rule"></div>
 
-  <div id="result"></div>
+<canvas id="canvas" width="200" height="200"></canvas>
 
+<div class="btns">
+  <button class="left" onclick="check('L')">LEFT</button>
+  <button class="right" onclick="check('R')">RIGHT</button>
+  <button class="restart" onclick="restart()">RESTART</button>
+</div>
+
+<div id="result"></div>
+<div id="finalScore"></div>
 </div>
 
 <script>
-
-const Sound = {
-  ctx: null,
-
-  init() {
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) return;
-
-    if (!this.ctx) this.ctx = new AudioCtx();
-
-    if (this.ctx.state === "suspended") {
-      this.ctx.resume();
-    }
+const Sound={
+  ctx:null,
+  init(){
+    const A=window.AudioContext||window.webkitAudioContext;
+    if(!this.ctx) this.ctx=new A();
   },
-
-  play(freq, time, type="sine", vol=0.2) {
-    if (!this.ctx) return;
-
-    const o = this.ctx.createOscillator();
-    const g = this.ctx.createGain();
-
-    o.type = type;
-    o.frequency.value = freq;
-
-    g.gain.setValueAtTime(vol, this.ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + time);
-
-    o.connect(g);
-    g.connect(this.ctx.destination);
-
-    o.start();
-    o.stop(this.ctx.currentTime + time);
-  },
-  win() {
+  tone(f,t){
     this.init();
-    this.play(500, 0.1);
-    setTimeout(() => this.play(700, 0.1), 100);
-    setTimeout(() => this.play(900, 0.15), 200);
+    const o=this.ctx.createOscillator();
+    const g=this.ctx.createGain();
+    o.frequency.value=f;
+    g.gain.value=0.05;
+    o.connect(g);g.connect(this.ctx.destination);
+    o.start();o.stop(this.ctx.currentTime+t);
   },
-
-  wrong() {
-    this.init();
-    this.play(300, 0.2, "sine", 0.15);
+  correct(){
+    this.tone(500,0.08);
+    setTimeout(()=>this.tone(650,0.08),80);
+    setTimeout(()=>this.tone(800,0.08),160);
   },
-
-  start() {
-    this.init();
-    this.play(400, 0.1);
+  wrong(){
+    this.tone(220,0.2);
   }
 };
 
-const shapes = ["circle", "square", "triangle"];
+const shapes=["circle","square","triangle","star"];
+const colors={
+  red:"#c96f6f",
+  blue:"#6f9cc9",
+  green:"#6fb089",
+  yellow:"#d4c06a"
+};
 
-const colors = [
-  { name: "red", value: "#e03131" },
-  { name: "blue", value: "#1c7ed6" },
-  { name: "green", value: "#2f9e44" }
-];
+let score=0,level=1,gameOver=false;
+let ruleType,ruleValue,ruleSide,current;
 
-let score = 0, level = 1, wrong = 0, gameOver = false;
-let ruleType, ruleValue, ruleSide;
-let currentObj;
+const ctx=document.getElementById("canvas").getContext("2d");
 
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
-
-function drawShape(o){
-  ctx.clearRect(0,0,220,220);
-  ctx.fillStyle = o.color.value;
-
-  if(o.shape === "circle"){
-    ctx.beginPath();
-    ctx.arc(110,110,60,0,Math.PI*2);
-    ctx.fill();
-  }
-
-  if(o.shape === "square"){
-    ctx.fillRect(60,60,100,100);
-  }
-
-  if(o.shape === "triangle"){
-    ctx.beginPath();
-    ctx.moveTo(110,50);
-    ctx.lineTo(50,170);
-    ctx.lineTo(170,170);
-    ctx.fill();
-  }
-}
-
-function changeRule(){
-  ruleType = level === 1 ? "color" : (Math.random()<0.5?"shape":"color");
-
-  if(ruleType === "color"){
-    ruleValue = colors[Math.floor(Math.random()*colors.length)];
-  } else {
-    ruleValue = shapes[Math.floor(Math.random()*shapes.length)];
-  }
-
-  ruleSide = Math.random()<0.5 ? "LEFT" : "RIGHT";
-}
-
-function nextRound(){
-  changeRule();
-
-  currentObj = {
-    shape: shapes[Math.floor(Math.random()*3)],
-    color: colors[Math.floor(Math.random()*3)]
-  };
-
-  drawShape(currentObj);
-
-  let text = "";
-
-  if(ruleType === "color"){
-    text = "If color is " + ruleValue.name + ", press " + ruleSide;
-  } else {
-    text = "If shape is " + ruleValue + ", press " + ruleSide;
-  }
-
-  document.getElementById("rule").innerText = text;
-
-  document.getElementById("info").innerText =
-    "Level: " + level + " | Score: " + score;
-}
-
-function handleInput(choice){
+function newRound(){
   if(gameOver) return;
 
-  Sound.init(); 
+  if(level===1) ruleType="color";
+  else if(level===2) ruleType="shape";
+  else ruleType=Math.random()<0.5?"color":"shape";
 
-  let match = (ruleType === "color")
-    ? currentObj.color.name === ruleValue.name
-    : currentObj.shape === ruleValue;
+  ruleSide=Math.random()<0.5?"LEFT":"RIGHT";
 
-  let correct;
+  let shape=shapes[Math.floor(Math.random()*shapes.length)];
+  let keys=Object.keys(colors);
+  let color=keys[Math.floor(Math.random()*keys.length)];
 
-  if(ruleSide === "LEFT"){
-    correct = match ? (choice === "L") : (choice === "R");
-  } else {
-    correct = match ? (choice === "R") : (choice === "L");
+  current={shape,color};
+  ruleValue=ruleType==="color"?color:shape;
+
+  draw(shape,colors[color]);
+
+  document.getElementById("top").innerText=
+    "Level: "+level+" | Score: "+score;
+
+  document.getElementById("rule").innerText=
+    ruleType==="color"
+    ? "If the color is "+ruleValue+", press "+ruleSide
+    : "If the shape is "+ruleValue+", press "+ruleSide;
+}
+
+function draw(shape,color){
+  ctx.clearRect(0,0,200,200);
+  ctx.fillStyle=color;
+
+  if(shape==="circle"){
+    ctx.beginPath();
+    ctx.arc(100,100,50,0,Math.PI*2);
+    ctx.fill();
   }
+  if(shape==="square"){
+    ctx.fillRect(50,50,100,100);
+  }
+  if(shape==="triangle"){
+    ctx.beginPath();
+    ctx.moveTo(100,40);
+    ctx.lineTo(40,160);
+    ctx.lineTo(160,160);
+    ctx.fill();
+  }
+  if(shape==="star"){
+    ctx.font="70px Arial";
+    ctx.fillText("★",60,140);
+  }
+}
+
+function check(choice){
+  if(gameOver) return;
+
+  let match = (ruleType==="color")
+    ? current.color===ruleValue
+    : current.shape===ruleValue;
+
+  let correct = (ruleSide==="LEFT")
+    ? (match && choice==="L") || (!match && choice==="R")
+    : (match && choice==="R") || (!match && choice==="L");
 
   if(correct){
     score++;
-    document.getElementById("result").innerText = "Correct 😊";
-    Sound.win();
+    document.getElementById("result").innerText="Correct 😊";
+    Sound.correct();
+
+    if(score===5) level=2;
+    if(score===10) level=3;
+
+    setTimeout(newRound,700);
   } else {
-    wrong++;
-    document.getElementById("result").innerText = "Try again 🙂";
+    gameOver=true;
+    document.getElementById("result").innerText="Game Over – Press Restart";
+    document.getElementById("finalScore").innerText="Score: "+score;
     Sound.wrong();
   }
-
-  if(score % 5 === 0 && score !== 0){
-    level++;
-  }
-
-  if(wrong >= 5){
-    document.getElementById("result").innerText = "Game Over";
-    Sound.wrong();
-    gameOver = true;
-    return;
-  }
-
-  setTimeout(()=>{
-    document.getElementById("result").innerText = "";
-    nextRound();
-  },700);
 }
 
-function restartGame(){
-  score = 0;
-  level = 1;
-  wrong = 0;
-  gameOver = false;
-  document.getElementById("result").innerText = "";
-  nextRound();
+function restart(){
+  score=0;
+  level=1;
+  gameOver=false;
+  document.getElementById("result").innerText="";
+  document.getElementById("finalScore").innerText="";
+  newRound();
 }
 
-document.body.addEventListener("click", () => {
-  Sound.start();
-}, { once: true });
-
-nextRound();
-
+newRound();
 </script>
 
 </body>
