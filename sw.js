@@ -1,6 +1,6 @@
 const CACHE_NAME = "sorter-game-v1";
 
-const FILES_TO_CACHE = [aaaaa
+const FILES_TO_CACHE = [
   "./",
   "index.html",
   "manifest.json"
